@@ -51,12 +51,12 @@ public class SpringMvcApiReader extends AbstractReader implements ClassSwaggerRe
     public SpringMvcApiReader(Swagger swagger, Log log) {
         super(swagger, log);
     }
-    
+
     @Override
     protected void updateExtensionChain() {
-    	List<SwaggerExtension> extensions = new ArrayList<SwaggerExtension>();
-    	extensions.add(new SpringSwaggerExtension());
-    	SwaggerExtensions.setExtensions(extensions);
+        List<SwaggerExtension> extensions = new ArrayList<SwaggerExtension>();
+        extensions.add(new SpringSwaggerExtension());
+        SwaggerExtensions.setExtensions(extensions);
     }
 
     @Override
@@ -121,10 +121,17 @@ public class SpringMvcApiReader extends AbstractReader implements ClassSwaggerRe
                 Map<String, String> regexMap = new HashMap<String, String>();
                 String operationPath = parseOperationPath(path, regexMap);
 
+                // if no request method available for RequestMapping annotation, here set a default method GET
+                RequestMethod[] mds = requestMapping.method();
+
+                if (mds.length == 0) {
+                    mds = RequestMethod.values();
+                }
+                Operation operation = parseMethod(method);
+
                 //http method
-                for (RequestMethod requestMethod : requestMapping.method()) {
+                for (RequestMethod requestMethod : mds) {
                     String httpMethod = requestMethod.toString().toLowerCase();
-                    Operation operation = parseMethod(method);
 
                     updateOperationParameters(new ArrayList<Parameter>(), regexMap, operation);
 
@@ -308,7 +315,7 @@ public class SpringMvcApiReader extends AbstractReader implements ClassSwaggerRe
             List<Parameter> parameters = getParameters(type, annotations);
 
             for (Parameter parameter : parameters) {
-                if(parameter.getName().isEmpty()) {
+                if (parameter.getName().isEmpty()) {
                     parameter.setName(parameterNames[i]);
                 }
                 operation.parameter(parameter);
@@ -326,7 +333,6 @@ public class SpringMvcApiReader extends AbstractReader implements ClassSwaggerRe
 
         return operation;
     }
-
 
 
     private Map<String, List<Method>> collectApisByRequestMapping(List<Method> methods) {
@@ -379,7 +385,7 @@ public class SpringMvcApiReader extends AbstractReader implements ClassSwaggerRe
 
     //Helper method for loadDocuments()
     private Map<String, SpringResource> analyzeController(Class<?> controllerClazz, Map<String, SpringResource> resourceMap, String description) {
-	String[] controllerRequestMappingValues = SpringUtils.getControllerResquestMapping(controllerClazz);
+        String[] controllerRequestMappingValues = SpringUtils.getControllerResquestMapping(controllerClazz);
 
         // Iterate over all value attributes of the class-level RequestMapping annotation
         for (String controllerRequestMappingValue : controllerRequestMappingValues) {
@@ -389,6 +395,11 @@ public class SpringMvcApiReader extends AbstractReader implements ClassSwaggerRe
                 // Look for method-level @RequestMapping annotation
                 if (methodRequestMapping != null) {
                     RequestMethod[] requestMappingRequestMethods = methodRequestMapping.method();
+
+                    // Default method is GET if no method available
+                    if (requestMappingRequestMethods.length == 0) {
+                        requestMappingRequestMethods = new RequestMethod[]{RequestMethod.GET};
+                    }
 
                     // For each method-level @RequestMapping annotation, iterate over HTTP Verb
                     for (RequestMethod requestMappingRequestMethod : requestMappingRequestMethods) {

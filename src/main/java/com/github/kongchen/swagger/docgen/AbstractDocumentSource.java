@@ -43,6 +43,7 @@ import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author chekong 05/13/2013
@@ -338,6 +339,8 @@ public abstract class AbstractDocumentSource {
         }
     }
 
+    private AtomicInteger inc = new AtomicInteger(1);
+
     private void initHandlebars(final Handlebars handlebars) {
         handlebars.registerHelper("ifeq", new Helper<String>() {
             @Override
@@ -397,6 +400,13 @@ public abstract class AbstractDocumentSource {
                 return sb.toString();
             }
         });
+
+        handlebars.registerHelper("autoIncrement", new Helper<Path>() {
+            @Override
+            public CharSequence apply(Path context, Options options) throws IOException {
+                return Integer.toString(inc.getAndIncrement());
+            }
+        });
     }
 
     /**
@@ -410,7 +420,7 @@ public abstract class AbstractDocumentSource {
     /**
      * Returns the set of classes which should be included in the scanning.
      *
-     * @return Set<Class<?>> containing all valid classes
+     * @return Set<Class   <   ?>> containing all valid classes
      */
     protected Set<Class<?>> getValidClasses() {
         return apiSource.getValidClasses(Api.class);
